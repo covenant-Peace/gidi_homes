@@ -1,5 +1,7 @@
 # GidiHomes — Lagos Property Marketplace 🇳🇬
 
+### 🔗 Live demo: https://covenant-peace.github.io/gidi_homes/
+
 A Rightmove / Zoopla–style, two-sided property marketplace for **Lagos, Nigeria**,
 connecting **renters, shortlet guests and land buyers** with **agents and landlords**.
 
