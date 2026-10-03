@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Seeding tool
+tool/node_modules/
+tool/seed.json
+*serviceAccount*.json
+*service-account*.json
+*-firebase-adminsdk-*.json

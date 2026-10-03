@@ -14,6 +14,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/favorite_button.dart';
 import 'gallery.dart';
+import 'video_tour.dart';
 
 class PropertyDetailScreen extends ConsumerWidget {
   const PropertyDetailScreen({super.key, required this.id});
@@ -141,6 +142,11 @@ class _Main extends StatelessWidget {
         const _Heading('Description'),
         Text(p.description,
             style: const TextStyle(fontSize: 15, height: 1.6, color: AppColors.ink)),
+        if (p.hasVideo) ...[
+          const SizedBox(height: 24),
+          const _Heading('Video tour'),
+          VideoTour(url: p.videos.first),
+        ],
         if (p.amenities.isNotEmpty) ...[
           const SizedBox(height: 24),
           const _Heading('Amenities & features'),

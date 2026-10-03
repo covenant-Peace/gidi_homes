@@ -30,6 +30,13 @@ dependencies:
   url_launcher: ^6.3.0         # tel: / wa.me / mailto
   shared_preferences: ^2.3.2   # local favourites + session persistence
 
+  # Auth + media
+  google_sign_in: ^6.2.1       # "Continue with Google"
+  image_picker: ^1.1.2         # pick photos & videos
+  http: ^1.2.2                 # Cloudinary unsigned upload
+  video_player: ^2.9.2         # play listing videos
+  chewie: ^1.8.5               # video player controls
+
   # --- Firebase (optional backend; app runs on seed data until configured) ---
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1

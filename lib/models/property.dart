@@ -26,6 +26,7 @@ class Property {
     this.amenities = const [],
     this.featured = false,
     this.serviceCharge,
+    this.videos = const [],
   });
 
   final String id;
@@ -57,10 +58,12 @@ class Property {
   final List<String> amenities;
   final bool featured;
   final int? serviceCharge; // annual, naira — common for Lagos estates
+  final List<String> videos; // Cloudinary video URLs (tours)
 
   LatLng get latLng => LatLng(lat, lng);
   bool get isLand => type == ListingType.land;
   String? get coverImage => images.isNotEmpty ? images.first : null;
+  bool get hasVideo => videos.isNotEmpty;
 
   Property copyWith({
     String? title,
@@ -81,6 +84,7 @@ class Property {
     int? serviceCharge,
     double? lat,
     double? lng,
+    List<String>? videos,
   }) {
     return Property(
       id: id,
@@ -104,6 +108,7 @@ class Property {
       amenities: amenities ?? this.amenities,
       featured: featured ?? this.featured,
       serviceCharge: serviceCharge ?? this.serviceCharge,
+      videos: videos ?? this.videos,
     );
   }
 
@@ -129,6 +134,7 @@ class Property {
         'amenities': amenities,
         'featured': featured,
         'serviceCharge': serviceCharge,
+        'videos': videos,
       };
 
   factory Property.fromMap(Map<String, dynamic> m) => Property(
@@ -157,6 +163,7 @@ class Property {
         amenities: (m['amenities'] as List?)?.cast<String>() ?? const [],
         featured: m['featured'] as bool? ?? false,
         serviceCharge: (m['serviceCharge'] as num?)?.toInt(),
+        videos: (m['videos'] as List?)?.cast<String>() ?? const [],
       );
 }
 

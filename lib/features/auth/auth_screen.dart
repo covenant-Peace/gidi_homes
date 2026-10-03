@@ -200,8 +200,37 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           : Text(_isLogin ? 'Sign in' : 'Create account'),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('or',
+                            style: TextStyle(
+                                color: AppColors.slate.withValues(alpha: 0.8))),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      onPressed: loading
+                          ? null
+                          : () async {
+                              await ref
+                                  .read(authControllerProvider.notifier)
+                                  .signInWithGoogle();
+                              _afterAuth();
+                            },
+                      icon: const _GoogleGlyph(),
+                      label: const Text('Continue with Google'),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton.icon(
                     onPressed: loading
                         ? null
                         : () async {
@@ -211,7 +240,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             _afterAuth();
                           },
                     icon: const Icon(Icons.bolt_rounded, size: 18),
-                    label: const Text('Continue with demo account'),
+                    label: const Text('Continue as guest'),
                   ),
                   const SizedBox(height: 18),
                   TextButton(
@@ -295,4 +324,20 @@ class _RoleToggle extends StatelessWidget {
 
 extension<T> on T {
   R let<R>(R Function(T) f) => f(this);
+}
+
+/// Minimal Google "G" mark for the sign-in button.
+class _GoogleGlyph extends StatelessWidget {
+  const _GoogleGlyph();
+  @override
+  Widget build(BuildContext context) {
+    return const Text(
+      'G',
+      style: TextStyle(
+        fontWeight: FontWeight.w800,
+        fontSize: 18,
+        color: Color(0xFF4285F4),
+      ),
+    );
+  }
 }

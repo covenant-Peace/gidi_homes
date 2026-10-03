@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/agent_repository.dart';
 import '../data/auth_repository.dart';
 import '../data/favorites_repository.dart';
+import '../data/firestore_repositories.dart';
 import '../data/property_repository.dart';
 import '../models/app_user.dart';
 import '../models/property.dart';
@@ -11,14 +12,16 @@ import '../models/property_filter.dart';
 // --------------------------------------------------------------------------
 // Repositories
 // --------------------------------------------------------------------------
+// Backend is now Firebase (Auth + Firestore). To fall back to the offline
+// in-memory seed data, swap these three for the In-Memory implementations.
 final agentRepoProvider =
-    Provider<AgentRepository>((ref) => InMemoryAgentRepository());
+    Provider<AgentRepository>((ref) => FirestoreAgentRepository());
 
 final propertyRepoProvider =
-    Provider<PropertyRepository>((ref) => InMemoryPropertyRepository());
+    Provider<PropertyRepository>((ref) => FirestorePropertyRepository());
 
 final authRepoProvider = Provider<AuthRepository>(
-    (ref) => InMemoryAuthRepository(ref.read(agentRepoProvider)));
+    (ref) => FirebaseAuthRepository(ref.read(agentRepoProvider)));
 
 final favoritesRepoProvider =
     Provider<FavoritesRepository>((ref) => FavoritesRepository());
@@ -128,6 +131,15 @@ class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
   Future<void> signInDemo() async {
     state = const AsyncValue.loading();
     state = AsyncValue.data(await _repo.signInDemo());
+  }
+
+  Future<void> signInWithGoogle() async {
+    state = const AsyncValue.loading();
+    try {
+      state = AsyncValue.data(await _repo.signInWithGoogle());
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
   }
 
   Future<void> signOut() async {

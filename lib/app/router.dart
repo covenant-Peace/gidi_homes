@@ -5,6 +5,7 @@ import '../features/account/account_screen.dart';
 import '../features/agent/agent_dashboard_screen.dart';
 import '../features/agent/post_listing_screen.dart';
 import '../features/auth/auth_screen.dart';
+import '../features/dev/seed_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/property/property_detail_screen.dart';
 import '../features/saved/saved_screen.dart';
@@ -55,6 +56,11 @@ final appRouter = GoRouter(
       parentNavigatorKey: _rootKey,
       builder: (_, state) =>
           PostListingScreen(editId: state.uri.queryParameters['id']),
+    ),
+    GoRoute(
+      path: '/dev/seed',
+      parentNavigatorKey: _rootKey,
+      builder: (_, __) => const SeedScreen(),
     ),
   ],
 );

@@ -1,12 +1,14 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app.dart';
+import 'firebase_options.dart';
 
-void main() {
-  // NOTE: Firebase is wired behind the repository layer but disabled by default
-  // so the app runs on seed data with no backend config. See lib/data/
-  // firestore_repositories.dart and README.md to switch it on.
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const ProviderScope(child: GidiHomesApp()));
 }

@@ -28,6 +28,8 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/app_user.dart';
 import '../models/enums.dart';
@@ -181,6 +183,46 @@ class FirebaseAuthRepository implements AuthRepository {
     );
     await _users.doc(user.id).set(user.toMap());
     return user;
+  }
+
+  @override
+  Future<AppUser> signInWithGoogle() async {
+    try {
+      final UserCredential cred;
+      if (kIsWeb) {
+        // Popup flow handled entirely by Firebase on web.
+        cred = await _auth.signInWithPopup(GoogleAuthProvider());
+      } else {
+        final googleUser = await GoogleSignIn().signIn();
+        if (googleUser == null) throw AuthException('Sign-in cancelled.');
+        final googleAuth = await googleUser.authentication;
+        cred = await _auth.signInWithCredential(
+          GoogleAuthProvider.credential(
+            accessToken: googleAuth.accessToken,
+            idToken: googleAuth.idToken,
+          ),
+        );
+      }
+      final fbUser = cred.user!;
+      final docRef = _users.doc(fbUser.uid);
+      final doc = await docRef.get();
+      if (doc.exists) return AppUser.fromMap(doc.data()!);
+
+      // First Google sign-in → create a buyer profile.
+      final user = AppUser(
+        id: fbUser.uid,
+        name: fbUser.displayName ?? 'User',
+        email: fbUser.email ?? '',
+        phone: fbUser.phoneNumber ?? '',
+        role: UserRole.buyer,
+        photoUrl: fbUser.photoURL,
+      );
+      await docRef.set(user.toMap());
+      _agents.cache(user);
+      return user;
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(e.message ?? 'Google sign-in failed.');
+    }
   }
 
   @override

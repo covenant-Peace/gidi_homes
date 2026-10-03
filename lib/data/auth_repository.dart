@@ -22,6 +22,7 @@ abstract class AuthRepository {
     String? agencyName,
   });
   Future<AppUser> signInDemo();
+  Future<AppUser> signInWithGoogle();
   Future<void> signOut();
   Future<AppUser> updateProfile(AppUser user);
 }
@@ -100,6 +101,21 @@ class InMemoryAuthRepository implements AuthRepository {
     await _latency();
     await _persist(demoBuyer);
     return demoBuyer;
+  }
+
+  @override
+  Future<AppUser> signInWithGoogle() async {
+    // Mock implementation only; the real one is in FirebaseAuthRepository.
+    await _latency();
+    const user = AppUser(
+      id: 'user_google_mock',
+      name: 'Google User',
+      email: 'googleuser@gidihomes.ng',
+      phone: '',
+      role: UserRole.buyer,
+    );
+    await _persist(user);
+    return user;
   }
 
   @override

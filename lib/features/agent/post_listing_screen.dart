@@ -1,8 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/responsive.dart';
+import '../../data/media_service.dart';
 import '../../data/property_images.dart';
 import '../../models/enums.dart';
 import '../../models/lagos_areas.dart';
@@ -30,6 +34,14 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
   bool _saving = false;
   bool _loadedForEdit = false;
   final Set<String> _amenities = {};
+
+  // Media
+  final MediaService _media = MediaService();
+  final List<XFile> _pickedImages = [];
+  XFile? _pickedVideo;
+  List<String> _existingImages = [];
+  List<String> _existingVideos = [];
+  String _uploadStatus = '';
 
   final _title = TextEditingController();
   final _address = TextEditingController();
@@ -76,6 +88,18 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
     _sqm.text = p.sizeSqm?.toStringAsFixed(0) ?? '';
     _serviceCharge.text = p.serviceCharge?.toString() ?? '';
     _description.text = p.description;
+    _existingImages = [...p.images];
+    _existingVideos = [...p.videos];
+  }
+
+  Future<void> _addImages() async {
+    final picked = await _media.pickImages();
+    if (picked.isNotEmpty) setState(() => _pickedImages.addAll(picked));
+  }
+
+  Future<void> _addVideo() async {
+    final picked = await _media.pickVideo();
+    if (picked != null) setState(() => _pickedVideo = picked);
   }
 
   Future<void> _save(Property? existing) async {
@@ -102,9 +126,36 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
     final area = findArea(_area!);
     final id = existing?.id ??
         'u${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}';
-    final images = existing?.images.isNotEmpty == true
-        ? existing!.images
-        : imagesFor(_type, seedFromId(id));
+
+    // --- Upload media to Cloudinary ---
+    List<String> images = [..._existingImages];
+    List<String> videos = [..._existingVideos];
+    try {
+      if (_pickedImages.isNotEmpty) {
+        if (!_media.configured) throw StateError('Media upload not configured.');
+        setState(() => _uploadStatus = 'Uploading ${_pickedImages.length} photo(s)…');
+        images.addAll(await _media.uploadImages(_pickedImages));
+      }
+      if (_pickedVideo != null) {
+        if (!_media.configured) throw StateError('Media upload not configured.');
+        setState(() => _uploadStatus = 'Uploading video…');
+        videos.add(await _media.upload(_pickedVideo!, isVideo: true));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _uploadStatus = '';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Upload failed: $e')));
+      }
+      return;
+    }
+
+    // Fall back to themed placeholder photos only if nothing was provided.
+    if (images.isEmpty) images = imagesFor(_type, seedFromId(id));
+    setState(() => _uploadStatus = 'Saving listing…');
 
     final property = Property(
       id: id,
@@ -130,6 +181,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
       serviceCharge: _serviceCharge.text.trim().isEmpty
           ? null
           : int.tryParse(_serviceCharge.text.replaceAll(',', '')),
+      videos: videos,
     );
 
     final repo = ref.read(propertyRepoProvider);
@@ -141,7 +193,10 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
     ref.read(listingsRevisionProvider.notifier).state++;
 
     if (!mounted) return;
-    setState(() => _saving = false);
+    setState(() {
+      _saving = false;
+      _uploadStatus = '';
+    });
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(existing == null
             ? 'Listing published!'
@@ -348,29 +403,25 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                   onChanged: (v) => setState(() => _featured = v),
                 ),
 
-                Container(
-                  margin: const EdgeInsets.only(top: 4, bottom: 18),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.greenSoft,
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 18),
+                _buildMediaSection(),
+
+                if (_saving && _uploadStatus.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                        const SizedBox(width: 10),
+                        Text(_uploadStatus,
+                            style: const TextStyle(
+                                color: AppColors.slate, fontSize: 13)),
+                      ],
+                    ),
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.image_outlined,
-                          color: AppColors.green, size: 18),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Demo build: sample photos are attached automatically. '
-                          'Wire Firebase Storage to upload real images.',
-                          style: TextStyle(
-                              color: AppColors.greenDark, fontSize: 12.5),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
 
                 SizedBox(
                   height: 54,
@@ -390,6 +441,103 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMediaSection() {
+    final hasVideo = _pickedVideo != null || _existingVideos.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _Label('Photos'),
+        if (!_media.configured)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline_rounded,
+                      color: Color(0xFF8A5A00), size: 18),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Media upload isn\'t configured yet — sample photos will be '
+                      'attached automatically. (Set Cloudinary keys in app_config.dart.)',
+                      style: TextStyle(color: Color(0xFF8A5A00), fontSize: 12.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        SizedBox(
+          height: 96,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _AddTile(
+                icon: Icons.add_photo_alternate_outlined,
+                label: 'Add photos',
+                onTap: _media.configured ? _addImages : null,
+              ),
+              for (int i = 0; i < _existingImages.length; i++)
+                _Thumb(
+                  child: Image.network(_existingImages[i], fit: BoxFit.cover),
+                  onRemove: () =>
+                      setState(() => _existingImages.removeAt(i)),
+                ),
+              for (int i = 0; i < _pickedImages.length; i++)
+                _Thumb(
+                  child: _XFileImage(_pickedImages[i]),
+                  onRemove: () => setState(() => _pickedImages.removeAt(i)),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        const _Label('Video tour (optional)'),
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: _media.configured ? _addVideo : null,
+              icon: const Icon(Icons.videocam_outlined, size: 18),
+              label: Text(hasVideo ? 'Replace video' : 'Add video'),
+            ),
+            const SizedBox(width: 12),
+            if (hasVideo)
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded,
+                        color: AppColors.green, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _pickedVideo?.name ?? 'Current video attached',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: AppColors.slate, fontSize: 12.5),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      onPressed: () => setState(() {
+                        _pickedVideo = null;
+                        _existingVideos = [];
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -415,6 +563,111 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
 
   static String? _req(String? v) =>
       (v == null || v.trim().isEmpty) ? 'Required' : null;
+}
+
+class _AddTile extends StatelessWidget {
+  const _AddTile(
+      {required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 96,
+          decoration: BoxDecoration(
+            color: AppColors.greenSoft,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: enabled ? AppColors.green : AppColors.line,
+                style: BorderStyle.solid),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon,
+                  color: enabled ? AppColors.green : AppColors.slate, size: 24),
+              const SizedBox(height: 4),
+              Text(label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: enabled ? AppColors.greenDark : AppColors.slate,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Thumb extends StatelessWidget {
+  const _Thumb({required this.child, required this.onRemove});
+  final Widget child;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(width: 96, height: 96, child: child),
+          ),
+          Positioned(
+            right: 4,
+            top: 4,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(
+                    color: Colors.black54, shape: BoxShape.circle),
+                child: const Icon(Icons.close_rounded,
+                    color: Colors.white, size: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Cross-platform preview of a picked [XFile] (web + native) via bytes.
+class _XFileImage extends StatelessWidget {
+  const _XFileImage(this.file);
+  final XFile file;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: file.readAsBytes(),
+      builder: (_, snap) {
+        if (!snap.hasData) {
+          return const ColoredBox(
+            color: AppColors.line,
+            child: Center(
+                child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2))),
+          );
+        }
+        return Image.memory(snap.data!, fit: BoxFit.cover);
+      },
+    );
+  }
 }
 
 class _Label extends StatelessWidget {

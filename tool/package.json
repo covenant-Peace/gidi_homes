@@ -1,0 +1,10 @@
+{
+  "name": "gidi-homes-seed",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "One-off Firestore seeding for GidiHomes (Admin SDK).",
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}
