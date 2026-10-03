@@ -229,19 +229,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       label: const Text('Continue with Google'),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  TextButton.icon(
-                    onPressed: loading
-                        ? null
-                        : () async {
-                            await ref
-                                .read(authControllerProvider.notifier)
-                                .signInDemo();
-                            _afterAuth();
-                          },
-                    icon: const Icon(Icons.bolt_rounded, size: 18),
-                    label: const Text('Continue as guest'),
-                  ),
                   const SizedBox(height: 18),
                   TextButton(
                     onPressed: () => setState(() => _isLogin = !_isLogin),
@@ -260,12 +247,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ],
                     )),
                   ),
-                  if (_isLogin)
-                    const Text(
-                      'Tip: demo@gidihomes.ng · password  (or any seed agent email)',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.slate, fontSize: 11.5),
-                    ),
                 ],
               ),
             ),
