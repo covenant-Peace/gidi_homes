@@ -1,0 +1,45 @@
+name: gidi_homes
+description: "GidiHomes — Lagos property marketplace connecting renters, shortlet guests and land buyers with agents and landlords."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Routing (deep-linkable URLs on web)
+  go_router: ^14.2.0
+
+  # UI / media
+  cached_network_image: ^3.3.1
+  google_fonts: ^6.2.1
+  flutter_map: ^7.0.2          # OpenStreetMap, no API key required
+  latlong2: ^0.9.1
+  carousel_slider: ^5.0.0
+
+  # Utils
+  intl: ^0.19.0
+  url_launcher: ^6.3.0         # tel: / wa.me / mailto
+  shared_preferences: ^2.3.2   # local favourites + session persistence
+
+  # --- Firebase (optional backend; app runs on seed data until configured) ---
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  firebase_storage: ^12.3.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
