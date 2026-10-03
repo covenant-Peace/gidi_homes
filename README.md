@@ -6,10 +6,13 @@ A Rightmove / Zoopla–style, two-sided property marketplace for **Lagos, Nigeri
 connecting **renters, shortlet guests and land buyers** with **agents and landlords**.
 
 **One Flutter codebase powers both the website (Flutter Web) and the mobile app
-(Android / iOS)** — exactly as planned. Firebase (Auth + Firestore + Storage) is
-the intended backend; the app ships running on realistic Lagos **seed data** so it
-works end-to-end with **zero backend setup**, and switches to Firebase with a few
-lines (see [Going live with Firebase](#going-live-with-firebase)).
+(Android / iOS)** — exactly as planned.
+
+**Backend is live:** **Firebase Auth** (Email/Password + Google Sign-In) and
+**Cloud Firestore** (listings + user profiles), with **Cloudinary** for image &
+video uploads. The Firestore database is seeded with real Lagos sample listings.
+To run fully offline, swap the three repository providers in
+`lib/providers/providers.dart` back to the in-memory implementations.
 
 ---
 
@@ -143,9 +146,10 @@ The Firebase implementations are already written in
 
 ## Notes & roadmap
 
-- **Images** in this demo are curated Unsplash photos chosen to resemble real
-  listings. In production they're replaced by agents' own uploads via Firebase Storage
-  (`property_images/{uid}/...`).
+- **Media:** agents upload their own photos **and a video tour** when posting a
+  listing; files go to **Cloudinary** (unsigned preset — no credit card) and the
+  URLs are saved on the listing. Seeded demo listings use curated Unsplash photos.
+  (Firebase Storage was avoided because it now requires the paid Blaze plan.)
 - Web routing uses Flutter's default **hash URLs** (`/#/search`). For clean paths,
   set the URL strategy via `flutter_web_plugins` `usePathUrlStrategy()`.
 - Natural next steps: in-app chat, inspection booking, saved searches & alerts,
