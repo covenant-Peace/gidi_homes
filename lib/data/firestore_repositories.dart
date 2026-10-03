@@ -61,11 +61,12 @@ class FirestorePropertyRepository implements PropertyRepository {
 
   @override
   Future<List<Property>> fetchByAgent(String agentId) async {
-    final snap = await _col
-        .where('agentId', isEqualTo: agentId)
-        .orderBy('createdAt', descending: true)
-        .get();
-    return snap.docs.map((d) => Property.fromMap(d.data())).toList();
+    // Filter in Firestore, sort in Dart — avoids needing a composite index
+    // (an agent has few listings, so client-side sorting is cheap).
+    final snap = await _col.where('agentId', isEqualTo: agentId).get();
+    final items = snap.docs.map((d) => Property.fromMap(d.data())).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return items;
   }
 
   @override
