@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "description": "One-off Firestore seeding for GidiHomes (Admin SDK).",
   "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "firebase": "^12.19.0",
     "firebase-admin": "^12.6.0"
   }
