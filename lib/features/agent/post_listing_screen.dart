@@ -182,6 +182,8 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
           ? null
           : int.tryParse(_serviceCharge.text.replaceAll(',', '')),
       videos: videos,
+      // New listings await moderation; edits keep their current status.
+      status: existing?.status ?? ListingStatus.pending,
     );
 
     final repo = ref.read(propertyRepoProvider);
@@ -199,7 +201,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
     });
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(existing == null
-            ? 'Listing published!'
+            ? 'Listing submitted — pending review before it goes live.'
             : 'Listing updated!')));
     context.canPop() ? context.pop() : context.go('/agent');
   }

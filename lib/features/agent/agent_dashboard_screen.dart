@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/responsive.dart';
+import '../../models/enums.dart';
 import '../../models/property.dart';
 import '../../providers/providers.dart';
 import '../../theme/app_theme.dart';
@@ -228,10 +229,18 @@ class _ListingRow extends StatelessWidget {
                           style: const TextStyle(
                               color: AppColors.slate, fontSize: 12.5)),
                       const SizedBox(height: 4),
-                      Text(priceLabel(p),
-                          style: const TextStyle(
-                              color: AppColors.green,
-                              fontWeight: FontWeight.w800)),
+                      Row(
+                        children: [
+                          Text(priceLabel(p),
+                              style: const TextStyle(
+                                  color: AppColors.green,
+                                  fontWeight: FontWeight.w800)),
+                          if (p.status != ListingStatus.approved) ...[
+                            const SizedBox(width: 8),
+                            _StatusPill(p.status),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -247,6 +256,27 @@ class _ListingRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill(this.status);
+  final ListingStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = status == ListingStatus.rejected
+        ? AppColors.danger
+        : AppColors.gold;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(999)),
+      child: Text(status.label,
+          style: TextStyle(
+              color: color, fontSize: 10.5, fontWeight: FontWeight.w700)),
     );
   }
 }

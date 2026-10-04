@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/account/account_screen.dart';
+import '../features/admin/admin_screen.dart';
 import '../features/agent/agent_dashboard_screen.dart';
 import '../features/agent/post_listing_screen.dart';
 import '../features/auth/auth_screen.dart';
@@ -10,6 +11,8 @@ import '../features/chat/chat_thread_screen.dart';
 import '../features/dev/seed_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/inspection/inspections_screen.dart';
+import '../features/search/saved_searches_screen.dart';
+import '../features/verification/verification_screen.dart';
 import '../models/chat.dart';
 import '../features/property/property_detail_screen.dart';
 import '../features/saved/saved_screen.dart';
@@ -78,6 +81,21 @@ final appRouter = GoRouter(
       path: '/inspections',
       parentNavigatorKey: _rootKey,
       builder: (_, __) => const InspectionsScreen(),
+    ),
+    GoRoute(
+      path: '/saved-searches',
+      parentNavigatorKey: _rootKey,
+      builder: (_, __) => const SavedSearchesScreen(),
+    ),
+    GoRoute(
+      path: '/verify',
+      parentNavigatorKey: _rootKey,
+      builder: (_, __) => const VerificationScreen(),
+    ),
+    GoRoute(
+      path: '/admin',
+      parentNavigatorKey: _rootKey,
+      builder: (_, __) => const AdminScreen(),
     ),
     GoRoute(
       path: '/dev/seed',

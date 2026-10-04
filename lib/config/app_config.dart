@@ -9,4 +9,12 @@ class AppConfig {
   static bool get cloudinaryConfigured =>
       cloudinaryCloudName != 'YOUR_CLOUD_NAME' &&
       cloudinaryUploadPreset != 'YOUR_UNSIGNED_PRESET';
+
+  // --- Admin / moderation ---
+  // Users signing in with one of these emails get the moderation + verification
+  // review tools. Must match the email check in firestore.rules.
+  static const List<String> adminEmails = ['covenantp4@gmail.com'];
+
+  static bool isAdminEmail(String? email) =>
+      email != null && adminEmails.contains(email.toLowerCase());
 }

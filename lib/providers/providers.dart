@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/app_config.dart';
 import '../data/agent_repository.dart';
 import '../data/auth_repository.dart';
 import '../data/chat_repository.dart';
@@ -7,11 +8,16 @@ import '../data/favorites_repository.dart';
 import '../data/firestore_repositories.dart';
 import '../data/inspection_repository.dart';
 import '../data/property_repository.dart';
+import '../data/saved_search_repository.dart';
+import '../data/verification_repository.dart';
 import '../models/app_user.dart';
 import '../models/chat.dart';
+import '../models/enums.dart';
 import '../models/inspection.dart';
 import '../models/property.dart';
 import '../models/property_filter.dart';
+import '../models/saved_search.dart';
+import '../models/verification.dart';
 
 // --------------------------------------------------------------------------
 // Repositories
@@ -42,8 +48,14 @@ final allPropertiesProvider = FutureProvider<List<Property>>((ref) async {
 /// Bumped after create/update/delete to invalidate dependent providers.
 final listingsRevisionProvider = StateProvider<int>((ref) => 0);
 
-final featuredPropertiesProvider = FutureProvider<List<Property>>((ref) async {
+/// Only approved listings — what the public browse/search/home should show.
+final publicPropertiesProvider = FutureProvider<List<Property>>((ref) async {
   final all = await ref.watch(allPropertiesProvider.future);
+  return all.where((p) => p.isPublic).toList();
+});
+
+final featuredPropertiesProvider = FutureProvider<List<Property>>((ref) async {
+  final all = await ref.watch(publicPropertiesProvider.future);
   final featured = all.where((p) => p.featured).toList();
   return featured.isEmpty ? all.take(5).toList() : featured;
 });
@@ -72,7 +84,7 @@ final filterProvider =
     StateProvider<PropertyFilter>((ref) => const PropertyFilter());
 
 final searchResultsProvider = FutureProvider<List<Property>>((ref) async {
-  final all = await ref.watch(allPropertiesProvider.future);
+  final all = await ref.watch(publicPropertiesProvider.future);
   final filter = ref.watch(filterProvider);
   return filter.apply(all);
 });
@@ -219,4 +231,93 @@ final myInspectionsProvider = StreamProvider<List<Inspection>>((ref) {
   if (user == null) return Stream.value(const []);
   final repo = ref.read(inspectionRepoProvider);
   return user.isAgent ? repo.watchForAgent(user.id) : repo.watchForBuyer(user.id);
+});
+
+// --------------------------------------------------------------------------
+// Saved searches (local) + in-app alerts
+// --------------------------------------------------------------------------
+final savedSearchRepoProvider =
+    Provider<SavedSearchRepository>((ref) => SavedSearchRepository());
+
+final savedSearchesProvider =
+    StateNotifierProvider<SavedSearchesController, List<SavedSearch>>((ref) {
+  return SavedSearchesController(ref.read(savedSearchRepoProvider));
+});
+
+class SavedSearchesController extends StateNotifier<List<SavedSearch>> {
+  SavedSearchesController(this._repo) : super([]) {
+    _load();
+  }
+  final SavedSearchRepository _repo;
+
+  Future<void> _load() async => state = await _repo.load();
+
+  Future<void> add(PropertyFilter filter, String name) async {
+    final now = DateTime.now();
+    final search = SavedSearch(
+      id: 's${now.microsecondsSinceEpoch}',
+      name: name,
+      filter: filter,
+      createdAt: now,
+      lastSeenAt: now,
+    );
+    state = [search, ...state];
+    await _repo.save(state);
+  }
+
+  Future<void> remove(String id) async {
+    state = state.where((s) => s.id != id).toList();
+    await _repo.save(state);
+  }
+
+  Future<void> markSeen(String id) async {
+    state = [
+      for (final s in state)
+        s.id == id ? s.copyWith(lastSeenAt: DateTime.now()) : s
+    ];
+    await _repo.save(state);
+  }
+}
+
+/// Total count of "new since saved" listings across all saved searches (badge).
+final newAlertsCountProvider = Provider<int>((ref) {
+  final searches = ref.watch(savedSearchesProvider);
+  final all = ref.watch(publicPropertiesProvider).valueOrNull ?? const [];
+  var count = 0;
+  for (final s in searches) {
+    count += s.filter
+        .apply(all)
+        .where((p) => p.createdAt.isAfter(s.lastSeenAt))
+        .length;
+  }
+  return count;
+});
+
+// --------------------------------------------------------------------------
+// Admin / moderation / verification
+// --------------------------------------------------------------------------
+final isAdminProvider = Provider<bool>((ref) {
+  final email = ref.watch(authControllerProvider).valueOrNull?.email;
+  return AppConfig.isAdminEmail(email);
+});
+
+final pendingPropertiesProvider = FutureProvider<List<Property>>((ref) async {
+  final all = await ref.watch(allPropertiesProvider.future);
+  return all.where((p) => p.status == ListingStatus.pending).toList();
+});
+
+final verificationRepoProvider =
+    Provider<VerificationRepository>((ref) => VerificationRepository());
+
+/// The current agent's own verification request (if any).
+final myVerificationProvider = StreamProvider<Verification?>((ref) {
+  final uid = ref.watch(authControllerProvider).valueOrNull?.id;
+  if (uid == null) return Stream.value(null);
+  return ref.read(verificationRepoProvider).watchForAgent(uid);
+});
+
+/// Pending verification requests for admin review.
+final pendingVerificationsProvider = StreamProvider<List<Verification>>((ref) {
+  if (!ref.watch(isAdminProvider)) return Stream.value(const []);
+  return ref.read(verificationRepoProvider).watchPending();
 });

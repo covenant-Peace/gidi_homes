@@ -2,20 +2,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Public can read listings; only the owning agent can write their own.
+    // Moderators — keep in sync with AppConfig.adminEmails.
+    function isAdmin() {
+      return request.auth != null
+             && request.auth.token.email in ['covenantp4@gmail.com'];
+    }
+
+    // Listings: public read; the owning agent (or an admin, for moderation)
+    // may write.
     match /properties/{id} {
       allow read: if true;
       allow create: if request.auth != null
                     && request.resource.data.agentId == request.auth.uid;
       allow update, delete: if request.auth != null
-                            && resource.data.agentId == request.auth.uid;
+                            && (resource.data.agentId == request.auth.uid
+                                || isAdmin());
     }
 
-    // User profiles: public read (agents are shown on listings),
-    // a user may only write their own document.
+    // User profiles: public read; a user writes their own doc, an admin may
+    // write any (to flip the verified flag).
     match /users/{uid} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null
+                   && (request.auth.uid == uid || isAdmin());
     }
 
     // Chats: only the two participants can read/write the thread + messages.
@@ -48,6 +57,14 @@ service cloud.firestore {
       allow update: if request.auth != null
                     && (request.auth.uid == resource.data.buyerId
                         || request.auth.uid == resource.data.agentId);
+    }
+
+    // Agent verification: the agent (doc id == their uid) or an admin.
+    match /verifications/{agentId} {
+      allow read: if request.auth != null
+                  && (request.auth.uid == agentId || isAdmin());
+      allow create, update: if request.auth != null
+                  && (request.auth.uid == agentId || isAdmin());
     }
   }
 }

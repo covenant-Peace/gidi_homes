@@ -26,7 +26,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final featured = ref.watch(featuredPropertiesProvider);
-    final latest = ref.watch(allPropertiesProvider);
+    final latest = ref.watch(publicPropertiesProvider);
     final isMobile = context.isMobile;
 
     return Scaffold(

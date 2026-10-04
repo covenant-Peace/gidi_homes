@@ -71,6 +71,45 @@ class PropertyFilter {
     );
   }
 
+  /// Short human-readable summary, e.g. "Rent · Lekki Phase 1 · 2+ beds".
+  String get summary {
+    final parts = <String>[];
+    if (type != null) parts.add(type!.label);
+    if (area != null) parts.add(area!);
+    if (minBeds != null) parts.add('$minBeds+ beds');
+    if (minPrice != null || maxPrice != null) {
+      parts.add('₦${minPrice ?? 0}–${maxPrice ?? '∞'}');
+    }
+    if (furnishing != null) parts.add(furnishing!.label);
+    if (landTitle != null) parts.add(landTitle!.label);
+    if (query.isNotEmpty) parts.add('"$query"');
+    return parts.isEmpty ? 'All listings' : parts.join(' · ');
+  }
+
+  Map<String, dynamic> toMap() => {
+        'query': query,
+        'type': type?.name,
+        'area': area,
+        'minPrice': minPrice,
+        'maxPrice': maxPrice,
+        'minBeds': minBeds,
+        'furnishing': furnishing?.name,
+        'landTitle': landTitle?.name,
+        'sort': sort.name,
+      };
+
+  factory PropertyFilter.fromMap(Map<String, dynamic> m) => PropertyFilter(
+        query: m['query'] as String? ?? '',
+        type: _byName(ListingType.values, m['type']),
+        area: m['area'] as String?,
+        minPrice: (m['minPrice'] as num?)?.toInt(),
+        maxPrice: (m['maxPrice'] as num?)?.toInt(),
+        minBeds: (m['minBeds'] as num?)?.toInt(),
+        furnishing: _byName(Furnishing.values, m['furnishing']),
+        landTitle: _byName(LandTitle.values, m['landTitle']),
+        sort: _byName(SortOption.values, m['sort']) ?? SortOption.newest,
+      );
+
   /// Apply this filter to a list and return the matching, sorted result.
   List<Property> apply(List<Property> source) {
     final q = query.trim().toLowerCase();
@@ -103,3 +142,11 @@ class PropertyFilter {
 }
 
 const _sentinel = Object();
+
+T? _byName<T extends Enum>(List<T> values, Object? name) {
+  if (name == null) return null;
+  for (final v in values) {
+    if (v.name == name) return v;
+  }
+  return null;
+}

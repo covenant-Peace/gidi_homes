@@ -27,6 +27,7 @@ class Property {
     this.featured = false,
     this.serviceCharge,
     this.videos = const [],
+    this.status = ListingStatus.approved,
   });
 
   final String id;
@@ -59,11 +60,13 @@ class Property {
   final bool featured;
   final int? serviceCharge; // annual, naira — common for Lagos estates
   final List<String> videos; // Cloudinary video URLs (tours)
+  final ListingStatus status;
 
   LatLng get latLng => LatLng(lat, lng);
   bool get isLand => type == ListingType.land;
   String? get coverImage => images.isNotEmpty ? images.first : null;
   bool get hasVideo => videos.isNotEmpty;
+  bool get isPublic => status == ListingStatus.approved;
 
   Property copyWith({
     String? title,
@@ -85,6 +88,7 @@ class Property {
     double? lat,
     double? lng,
     List<String>? videos,
+    ListingStatus? status,
   }) {
     return Property(
       id: id,
@@ -109,6 +113,7 @@ class Property {
       featured: featured ?? this.featured,
       serviceCharge: serviceCharge ?? this.serviceCharge,
       videos: videos ?? this.videos,
+      status: status ?? this.status,
     );
   }
 
@@ -135,6 +140,7 @@ class Property {
         'featured': featured,
         'serviceCharge': serviceCharge,
         'videos': videos,
+        'status': status.name,
       };
 
   factory Property.fromMap(Map<String, dynamic> m) => Property(
@@ -164,6 +170,11 @@ class Property {
         featured: m['featured'] as bool? ?? false,
         serviceCharge: (m['serviceCharge'] as num?)?.toInt(),
         videos: (m['videos'] as List?)?.cast<String>() ?? const [],
+        // Legacy / seeded docs without a status are treated as approved.
+        status: ListingStatus.values.firstWhere(
+          (s) => s.name == m['status'],
+          orElse: () => ListingStatus.approved,
+        ),
       );
 }
 

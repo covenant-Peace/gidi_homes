@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/responsive.dart';
 import '../../models/enums.dart';
@@ -39,6 +40,50 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     n.state = f(n.state);
   }
 
+  Future<void> _saveSearch() async {
+    final filter = ref.read(filterProvider);
+    final controller = TextEditingController(text: filter.summary);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Save search'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                "We'll tell you when new listings match it.",
+                style: TextStyle(color: AppColors.slate, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              child: const Text('Save')),
+        ],
+      ),
+    );
+    if (name != null && name.isNotEmpty) {
+      await ref.read(savedSearchesProvider.notifier).add(filter, name);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Search saved.'),
+          action: SnackBarAction(
+              label: 'View', onPressed: () => context.push('/saved-searches')),
+        ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final filter = ref.watch(filterProvider);
@@ -53,6 +98,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         title: const Text('Search',
             style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [
+          IconButton(
+            tooltip: 'Save this search',
+            onPressed: _saveSearch,
+            icon: const Icon(Icons.bookmark_add_outlined),
+          ),
           IconButton(
             tooltip: _mapView ? 'List view' : 'Map view',
             onPressed: () => setState(() => _mapView = !_mapView),

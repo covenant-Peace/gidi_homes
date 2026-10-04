@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/responsive.dart';
 import '../../models/app_user.dart';
+import '../../models/enums.dart';
 import '../../providers/providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
@@ -59,6 +60,9 @@ class _SignedIn extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final savedCount = ref.watch(favoritesProvider).length;
+    final alerts = ref.watch(newAlertsCountProvider);
+    final isAdmin = ref.watch(isAdminProvider);
+    final verification = ref.watch(myVerificationProvider).valueOrNull;
 
     return SingleChildScrollView(
       child: PageContainer(
@@ -153,6 +157,32 @@ class _SignedIn extends ConsumerWidget {
                 subtitle: 'Rent, shortlet or land',
                 onTap: () => context.push('/agent/post'),
               ),
+              _Tile(
+                icon: user.verified
+                    ? Icons.verified_rounded
+                    : Icons.verified_user_outlined,
+                title: user.verified ? 'Verified agent' : 'Get verified',
+                subtitle: switch (verification?.status) {
+                  VerificationStatus.pending => 'Under review',
+                  VerificationStatus.rejected => 'Not approved — tap to resubmit',
+                  _ => user.verified
+                      ? 'Your badge is active'
+                      : 'Submit NIN / CAC for a badge',
+                },
+                color: user.verified ? AppColors.green : null,
+                onTap: () => context.push('/verify'),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            if (isAdmin) ...[
+              const _SectionLabel('Admin'),
+              _Tile(
+                icon: Icons.admin_panel_settings_outlined,
+                title: 'Moderation',
+                subtitle: 'Review listings & verify agents',
+                onTap: () => context.push('/admin'),
+              ),
               const SizedBox(height: 20),
             ],
 
@@ -170,6 +200,15 @@ class _SignedIn extends ConsumerWidget {
                   ? 'Requests from buyers'
                   : 'Viewings you booked',
               onTap: () => context.push('/inspections'),
+            ),
+            _Tile(
+              icon: Icons.bookmark_border_rounded,
+              title: 'Saved searches',
+              subtitle: alerts > 0
+                  ? '$alerts new match${alerts == 1 ? '' : 'es'} since you looked'
+                  : 'Get alerts on new matches',
+              badge: alerts > 0 ? alerts : null,
+              onTap: () => context.push('/saved-searches'),
             ),
             _Tile(
               icon: Icons.favorite_border_rounded,
@@ -224,12 +263,14 @@ class _Tile extends StatelessWidget {
     this.subtitle,
     required this.onTap,
     this.color,
+    this.badge,
   });
   final IconData icon;
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
   final Color? color;
+  final int? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -275,6 +316,20 @@ class _Tile extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (badge != null)
+                  Container(
+                    margin: const EdgeInsets.only(right: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        borderRadius: BorderRadius.circular(999)),
+                    child: Text('$badge',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700)),
+                  ),
                 const Icon(Icons.chevron_right_rounded,
                     color: AppColors.slate),
               ],

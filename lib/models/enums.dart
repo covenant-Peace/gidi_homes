@@ -60,3 +60,31 @@ enum SortOption {
   const SortOption(this.label);
   final String label;
 }
+
+/// Moderation state of a listing. Absent/legacy docs are treated as approved.
+enum ListingStatus {
+  pending('Pending review'),
+  approved('Approved'),
+  rejected('Rejected');
+
+  const ListingStatus(this.label);
+  final String label;
+}
+
+/// Government ID type an agent submits for verification.
+enum VerificationType {
+  nin('NIN'),
+  cac('CAC');
+
+  const VerificationType(this.label);
+  final String label;
+}
+
+enum VerificationStatus {
+  pending('Pending'),
+  approved('Verified'),
+  rejected('Rejected');
+
+  const VerificationStatus(this.label);
+  final String label;
+}
