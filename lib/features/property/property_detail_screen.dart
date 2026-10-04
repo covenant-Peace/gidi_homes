@@ -184,6 +184,8 @@ class _ActionsRow extends ConsumerWidget {
       BuildContext context, WidgetRef ref, AppUser? agent) async {
     final user = ref.read(authControllerProvider).valueOrNull;
     if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Please sign in to message the agent.')));
       context.push('/auth');
       return;
     }
@@ -199,8 +201,17 @@ class _ActionsRow extends ConsumerWidget {
       propertyImage: property.coverImage,
       updatedAt: DateTime.now(),
     );
-    final created = await ref.read(chatRepoProvider).getOrCreate(chat);
-    if (context.mounted) context.push('/chat/${created.id}', extra: created);
+    try {
+      final created = await ref.read(chatRepoProvider).getOrCreate(chat);
+      if (context.mounted) {
+        context.push('/chat/${created.id}', extra: created);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open chat: $e')));
+      }
+    }
   }
 
   @override

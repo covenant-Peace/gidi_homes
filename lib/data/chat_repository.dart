@@ -40,8 +40,13 @@ class ChatRepository {
 
   Future<Chat> getOrCreate(Chat chat) async {
     final ref = _chats.doc(chat.id);
-    final doc = await ref.get();
-    if (doc.exists) return Chat.fromMap(doc.data()!);
+    try {
+      final doc = await ref.get();
+      if (doc.exists) return Chat.fromMap(doc.data()!);
+    } catch (_) {
+      // Reading a not-yet-existent chat can be denied by rules; fall through
+      // and create it.
+    }
     await ref.set(chat.toMap());
     return chat;
   }
