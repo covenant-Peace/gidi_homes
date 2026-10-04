@@ -158,6 +158,20 @@ class _SignedIn extends ConsumerWidget {
 
             const _SectionLabel('Activity'),
             _Tile(
+              icon: Icons.chat_bubble_outline_rounded,
+              title: 'Messages',
+              subtitle: 'Your conversations',
+              onTap: () => context.push('/messages'),
+            ),
+            _Tile(
+              icon: Icons.event_available_outlined,
+              title: user.isAgent ? 'Inspection requests' : 'My inspections',
+              subtitle: user.isAgent
+                  ? 'Requests from buyers'
+                  : 'Viewings you booked',
+              onTap: () => context.push('/inspections'),
+            ),
+            _Tile(
               icon: Icons.favorite_border_rounded,
               title: 'Saved properties',
               subtitle:

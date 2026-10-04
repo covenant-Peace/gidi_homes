@@ -2,10 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/agent_repository.dart';
 import '../data/auth_repository.dart';
+import '../data/chat_repository.dart';
 import '../data/favorites_repository.dart';
 import '../data/firestore_repositories.dart';
+import '../data/inspection_repository.dart';
 import '../data/property_repository.dart';
 import '../models/app_user.dart';
+import '../models/chat.dart';
+import '../models/inspection.dart';
 import '../models/property.dart';
 import '../models/property_filter.dart';
 
@@ -184,4 +188,35 @@ final savedPropertiesProvider = FutureProvider<List<Property>>((ref) async {
   final ids = ref.watch(favoritesProvider);
   final all = await ref.watch(allPropertiesProvider.future);
   return all.where((p) => ids.contains(p.id)).toList();
+});
+
+// --------------------------------------------------------------------------
+// Chat
+// --------------------------------------------------------------------------
+final chatRepoProvider = Provider<ChatRepository>((ref) => ChatRepository());
+
+/// Current user's conversations (live).
+final myChatsProvider = StreamProvider<List<Chat>>((ref) {
+  final uid = ref.watch(authControllerProvider).valueOrNull?.id;
+  if (uid == null) return Stream.value(const []);
+  return ref.read(chatRepoProvider).watchChats(uid);
+});
+
+/// Messages in a chat (live).
+final chatMessagesProvider =
+    StreamProvider.family<List<ChatMessage>, String>((ref, chatId) {
+  return ref.read(chatRepoProvider).watchMessages(chatId);
+});
+
+// --------------------------------------------------------------------------
+// Inspections
+// --------------------------------------------------------------------------
+final inspectionRepoProvider =
+    Provider<InspectionRepository>((ref) => InspectionRepository());
+
+final myInspectionsProvider = StreamProvider<List<Inspection>>((ref) {
+  final user = ref.watch(authControllerProvider).valueOrNull;
+  if (user == null) return Stream.value(const []);
+  final repo = ref.read(inspectionRepoProvider);
+  return user.isAgent ? repo.watchForAgent(user.id) : repo.watchForBuyer(user.id);
 });

@@ -7,12 +7,14 @@ import '../../core/contact.dart';
 import '../../core/format.dart';
 import '../../core/responsive.dart';
 import '../../models/app_user.dart';
+import '../../models/chat.dart';
 import '../../models/enums.dart';
 import '../../models/property.dart';
 import '../../providers/providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/favorite_button.dart';
+import '../inspection/book_inspection_sheet.dart';
 import 'gallery.dart';
 import 'video_tour.dart';
 
@@ -138,6 +140,8 @@ class _Main extends StatelessWidget {
           ),
         const SizedBox(height: 20),
         _KeyFacts(p),
+        const SizedBox(height: 16),
+        _ActionsRow(property: p),
         const SizedBox(height: 24),
         const _Heading('Description'),
         Text(p.description,
@@ -166,6 +170,77 @@ class _Main extends StatelessWidget {
         Text(
           'Approximate location in ${p.area}. Exact address shared on inspection.',
           style: const TextStyle(color: AppColors.slate, fontSize: 12.5),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionsRow extends ConsumerWidget {
+  const _ActionsRow({required this.property});
+  final Property property;
+
+  Future<void> _message(
+      BuildContext context, WidgetRef ref, AppUser? agent) async {
+    final user = ref.read(authControllerProvider).valueOrNull;
+    if (user == null) {
+      context.push('/auth');
+      return;
+    }
+    final chat = Chat(
+      id: Chat.makeId(property.id, user.id),
+      participants: [user.id, property.agentId],
+      buyerId: user.id,
+      agentId: property.agentId,
+      buyerName: user.name,
+      agentName: agent?.name ?? 'Agent',
+      propertyId: property.id,
+      propertyTitle: property.title,
+      propertyImage: property.coverImage,
+      updatedAt: DateTime.now(),
+    );
+    final created = await ref.read(chatRepoProvider).getOrCreate(chat);
+    if (context.mounted) context.push('/chat/${created.id}', extra: created);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authControllerProvider).valueOrNull;
+    final agent = ref.watch(agentByIdProvider(property.agentId)).valueOrNull;
+
+    // Owner viewing their own listing — no self-messaging/booking.
+    if (user != null && user.id == property.agentId) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: AppColors.greenSoft,
+            borderRadius: BorderRadius.circular(12)),
+        child: const Row(children: [
+          Icon(Icons.info_outline_rounded, size: 18, color: AppColors.greenDark),
+          SizedBox(width: 8),
+          Text('This is your listing.',
+              style: TextStyle(
+                  color: AppColors.greenDark, fontWeight: FontWeight.w600)),
+        ]),
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () => BookInspectionSheet.show(context, property),
+            icon: const Icon(Icons.event_available_outlined, size: 18),
+            label: const Text('Book inspection'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _message(context, ref, agent),
+            icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+            label: const Text('Message'),
+          ),
         ),
       ],
     );
