@@ -25,8 +25,7 @@ class PropertyCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ---- Image + badges ----
-            AspectRatio(
-              aspectRatio: 16 / 11,
+            Expanded(
               child: Stack(
                 fit: StackFit.expand,
                 children: [
